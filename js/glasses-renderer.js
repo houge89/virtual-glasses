@@ -1,106 +1,123 @@
-// 眼镜渲染器 - 在 Canvas 上绘制眼镜
+// 鐪奸暅娓叉煋鍣?- 鍦?Canvas 涓婄粯鍒剁溂闀?// 淇鐗堬細棰勬覆鏌?SVG銆佸悓姝ョ粯鍒躲€佹纭€傞厤闈㈤儴
 class GlassesRenderer {
     constructor(canvas, video) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.video = video;
-        this.currentGlasses = null;  // { svg, name, id }
-        this.currentAnchor = null;
+        this.currentGlasses = null;
+
+        // 棰勬覆鏌撶紦瀛橈細SVG 鈫?Image 瀵硅薄
+        this.cachedGlassesId = null;
+        this.cachedImg = null;
+        this.cacheReady = false;
+
         this.scale = 1.0;
         this.yOffset = 0;
     }
 
-    // 设置眼镜
-    setGlasses(glassesItem) {
+    // 璁剧疆鐪奸暅锛堝悓鏃堕娓叉煋 SVG 鍒?Image 瀵硅薄锛?    setGlasses(glassesItem) {
+        if (!glassesItem) return;
         this.currentGlasses = glassesItem;
+
+        // 濡傛灉宸茬紦瀛樺垯璺宠繃
+        if (this.cachedGlassesId === glassesItem.id) return;
+
+        this.cacheReady = false;
+        this.cachedGlassesId = glassesItem.id;
+
+        const svgStr = glassesItem.svg || '';
+        if (!svgStr) return;
+
+        const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+
+        const img = new Image();
+        img.onload = () => {
+            this.cachedImg = img;
+            this.cacheReady = true;
+            URL.revokeObjectURL(url);
+            console.log(`GlassesRenderer: 棰勬覆鏌撳畬鎴?[${glassesItem.name}]`);
+        };
+        img.onerror = () => {
+            console.warn(`GlassesRenderer: SVG 鍔犺浇澶辫触 [${glassesItem.name}]`);
+            URL.revokeObjectURL(url);
+        };
+        img.src = url;
     }
 
-    // 清除画布
+    // 娓呴櫎鐢诲竷
     clear() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    // 调整画布尺寸
-    resize() {
-        const rect = this.video.getBoundingClientRect();
-        this.canvas.width = this.video.videoWidth || rect.width;
-        this.canvas.height = this.video.videoHeight || rect.height;
-        this.ctx.imageSmoothingEnabled = true;
-        this.ctx.imageSmoothingQuality = 'high';
-    }
-
-    // 在指定位置渲染眼镜
+    // 娓叉煋鐪奸暅锛堝悓姝ワ紝鍦?requestAnimationFrame 涓皟鐢級
+    // anchorPoints: getGlassesAnchorPoints() 杩斿洖鍊?    // headRotation: getHeadRotation() 杩斿洖鍊?    // videoWidth/videoHeight: 瑙嗛灏哄
     render(anchorPoints, headRotation, videoWidth, videoHeight) {
         if (!this.currentGlasses || !anchorPoints) return;
 
-        // 确保 canvas 尺寸与视频一致
-        if (this.canvas.width !== videoWidth || this.canvas.height !== videoHeight) {
+        // 纭繚 canvas 灏哄涓庤棰戜竴鑷?        if (this.canvas.width !== videoWidth || this.canvas.height !== videoHeight) {
             this.canvas.width = videoWidth;
             this.canvas.height = videoHeight;
         }
 
         this.ctx.clearRect(0, 0, videoWidth, videoHeight);
 
-        // 计算眼镜的位置和大小
-        const leftX = anchorPoints.leftEyeOuter.x * videoWidth;
-        const leftY = anchorPoints.leftEyeOuter.y * videoHeight;
-        const rightX = anchorPoints.rightEyeOuter.x * videoWidth;
-        const rightY = anchorPoints.rightEyeOuter.y * videoHeight;
-        const noseX = anchorPoints.noseBridge.x * videoWidth;
-        const noseY = anchorPoints.noseBridge.y * videoHeight;
+        // 鈹€鈹€ 瀹氫綅璁＄畻 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+        // 鎵€鏈夊潗鏍囧凡褰掍竴鍖?(0~1)锛岄渶杞负鐢诲竷鍍忕礌鍧愭爣
+        const lx = anchorPoints.leftEyeOuter.x  * videoWidth;   // 宸︾溂澶栫溂瑙掞紙鐢婚潰鍙充晶锛?        const ly = anchorPoints.leftEyeOuter.y  * videoHeight;
+        const rx = anchorPoints.rightEyeOuter.x * videoWidth;   // 鍙崇溂澶栫溂瑙掞紙鐢婚潰宸︿晶锛?        const ry = anchorPoints.rightEyeOuter.y * videoHeight;
+        const nbx = anchorPoints.noseBridge.x   * videoWidth;  // 榧绘涓績 x
+        const nby = anchorPoints.noseBridge.y   * videoHeight; // 榧绘涓績 y
 
-        // 眼镜宽度 = 两眼外角距离 * 1.8
-        const eyeDistance = Math.sqrt(
-            Math.pow(rightX - leftX, 2) + Math.pow(rightY - leftY, 2)
-        );
-        const glassWidth = eyeDistance * 1.8 * this.scale;
-        const glassHeight = glassWidth * 0.4; // 高宽比
+        // 鐬宠窛锛堜袱鐪煎鐪艰涔嬮棿鐨勮窛绂伙級
+        const eyeDist = Math.sqrt((rx - lx) ** 2 + (ry - ly) ** 2);
 
-        // 眼镜中心点上移（在鼻梁上方一点）
-        const centerX = (leftX + rightX) / 2;
-        const centerY = noseY - glassHeight * 0.15 + this.yOffset;
+        // 鐪奸暅瀹藉害 = 鐬宠窛 脳 2.2锛堣鐩栧埌澶槼绌翠綅缃紝鏇磋嚜鐒讹級
+        const glassWidth  = eyeDist * 2.2 * this.scale;
+        // 鐪奸暅楂樺害鎸?SVG 瀹介珮姣旇绠?        const svgAspect = this.cachedImg ? (this.cachedImg.naturalWidth / this.cachedImg.naturalHeight) : 2.5;
+        const glassHeight = glassWidth / svgAspect;
 
-        // 计算旋转角度
-        const rotation = headRotation ? headRotation.roll * (Math.PI / 180) : 0;
+        // 鐪奸暅涓績 x = 榧绘涓績 x
+        const centerX = nbx;
+        // 鐪奸暅涓績 y = 榧绘 y 鍐嶅悜涓婂亸绉伙紙鐪奸暅鎴村湪榧绘涓婃柟锛?        const centerY = nby - glassHeight * 0.20 + this.yOffset;
 
-        // 创建临时 canvas 来渲染 SVG
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = glassWidth;
-        tempCanvas.height = glassHeight;
-        const tempCtx = tempCanvas.getContext('2d');
+        // 鈹€鈹€ 鏃嬭浆璁＄畻 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+        const roll  = headRotation ? (headRotation.roll  || 0) * (Math.PI / 180) : 0;
+        const yaw   = headRotation ? (headRotation.yaw   || 0) : 0;
+        const pitch = headRotation ? (headRotation.pitch || 0) : 0;
 
-        // 渲染 SVG 到临时 canvas
-        const svgBlob = new Blob([this.currentGlasses.svg], { type: 'image/svg+xml;charset=utf-8' });
-        const url = URL.createObjectURL(svgBlob);
+        // 鈹€鈹€ 缁樺埗 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+        this.ctx.save();
+        this.ctx.translate(centerX, centerY);
+        this.ctx.rotate(roll);
 
-        const img = new Image();
-        img.onload = () => {
-            this.ctx.save();
-            this.ctx.translate(centerX, centerY);
-            this.ctx.rotate(rotation);
+        // Yaw 渚ч潰鏁堟灉锛氬ご閮ㄤ晶杞椂閫傚綋鍘嬫墎+闄嶄綆閫忔槑搴?        if (Math.abs(yaw) > 10) {
+            const scaleX = Math.max(0.5, 1.0 - Math.abs(yaw) / 100);
+            this.ctx.scale(scaleX, 1);
+            this.ctx.globalAlpha = Math.max(0.4, 1.0 - Math.abs(yaw) / 100);
+        }
 
-            // 根据 yaw 调整透明度/缩放（侧面效果）
-            if (headRotation && Math.abs(headRotation.yaw) > 15) {
-                const scaleX = Math.max(0.6, 1 - Math.abs(headRotation.yaw) / 90);
-                this.ctx.scale(scaleX, 1);
-                this.ctx.globalAlpha = Math.max(0.5, 1 - Math.abs(headRotation.yaw) / 120);
-            }
-
-            this.ctx.drawImage(img, -glassWidth / 2, -glassHeight / 2, glassWidth, glassHeight);
-            this.ctx.restore();
-            URL.revokeObjectURL(url);
-        };
-        img.onerror = () => {
-            // SVG 绘制失败时的回退
-            this.ctx.save();
-            this.ctx.translate(centerX, centerY);
-            this.ctx.rotate(rotation);
+        if (this.cacheReady && this.cachedImg) {
+            // 姝ｅ父缁樺埗缂撳瓨濂界殑 SVG Image
+            this.ctx.drawImage(
+                this.cachedImg,
+                -glassWidth / 2,
+                -glassHeight / 2,
+                glassWidth,
+                glassHeight
+            );
+        } else {
+            // 鍥為€€锛氱粯鍒剁畝鍗曠煩褰㈡
             this.ctx.strokeStyle = '#333';
             this.ctx.lineWidth = 3;
-            this.ctx.strokeRect(-glassWidth/2, -glassHeight/2, glassWidth, glassHeight);
-            this.ctx.restore();
-            URL.revokeObjectURL(url);
-        };
-        img.src = url;
+            this.ctx.strokeRect(-glassWidth / 2, -glassHeight / 2, glassWidth, glassHeight);
+            // 榧绘涓嚎
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, -glassHeight / 2);
+            this.ctx.lineTo(0,  glassHeight / 2);
+            this.ctx.stroke();
+        }
+
+        this.ctx.restore();
     }
 }
