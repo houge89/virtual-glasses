@@ -29,9 +29,35 @@
     let selectedGlasses = null;
     let isTracking = false;
 
+    // ===== 强制释放摄像头（关键修复）=====
+    function forceReleaseCamera() {
+        // 停止所有媒体轨道
+        if (stream) {
+            stream.getTracks().forEach(track => {
+                track.stop();
+            });
+            stream = null;
+        }
+        // 清除 video 的 srcObject
+        if (video.srcObject) {
+            video.srcObject.getTracks().forEach(t => t.stop());
+            video.srcObject = null;
+        }
+        video.pause();
+        isTracking = false;
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+    }
+
     // ===== 初始化 =====
     async function init() {
         tips.textContent = '正在加载人脸检测模型，请稍候…';
+
+        // 页面关闭/刷新时强制释放摄像头（防止第二次打不开）
+        window.addEventListener('pagehide', forceReleaseCamera);
+        window.addEventListener('beforeunload', forceReleaseCamera);
 
         // 初始化人脸跟踪器
         faceTracker = new FaceTracker();
@@ -102,15 +128,18 @@
         }
     }
 
-    // ===== 摄像头控制（修复版）=====
+    // ===== 摄像头控制（修复版 v2）=====
     async function startCamera() {
+        // 【关键】先强制释放旧流，防止第二次开启失败
+        forceReleaseCamera();
+
         tips.textContent = '正在请求摄像头权限…';
         tips.style.color = '#3b82f6';
 
         try {
             // 尝试多种约束，兼容更多设备
             const constraintOptions = [
-                // 方案1：优先前置摄像头
+                // 方案1：优先前置摄像头（手机）
                 {
                     video: {
                         facingMode: 'user',
@@ -127,7 +156,7 @@
                     },
                     audio: false
                 },
-                // 方案3：最宽松约束
+                // 方案3：最宽松约束（兜底）
                 {
                     video: true,
                     audio: false
@@ -135,7 +164,6 @@
             ];
 
             let lastError = null;
-            stream = null;
 
             for (const constraints of constraintOptions) {
                 try {
@@ -143,7 +171,7 @@
                     break; // 成功则跳出
                 } catch (e) {
                     lastError = e;
-                    console.warn('摄像头约束失败，尝试下一种:', constraints, e);
+                    console.warn('摄像头约束失败，尝试下一种:', e.name, e.message);
                 }
             }
 
@@ -154,34 +182,33 @@
             // 绑定视频流
             video.srcObject = stream;
 
-            // 等待视频可以播放
-            await new Promise((resolve, reject) => {
+            // 等待视频可以播放（带超时）
+            await new Promise((resolve) => {
                 const onCanPlay = () => {
-                    video.removeEventListener('canplay', onCanPlay);
-                    video.removeEventListener('error', onError);
+                    cleanup();
                     resolve();
                 };
-                const onError = (e) => {
+                const onError = () => {
+                    cleanup();
+                    resolve(); // 继续，不阻塞
+                };
+                const cleanup = () => {
                     video.removeEventListener('canplay', onCanPlay);
                     video.removeEventListener('error', onError);
-                    reject(new Error('视频元素加载失败'));
                 };
+
                 video.addEventListener('canplay', onCanPlay);
                 video.addEventListener('error', onError);
 
-                const playPromise = video.play();
-                if (playPromise) {
-                    playPromise.catch(() => {
-                        // autoplay 被阻止，用户点击后才会触发 canplay
-                    });
-                }
+                // 主动触发 play()
+                const p = video.play();
+                if (p) p.catch(() => {});
 
-                // 超时保护 10 秒
+                // 超时保护 8 秒
                 setTimeout(() => {
-                    video.removeEventListener('canplay', onCanPlay);
-                    video.removeEventListener('error', onError);
-                    resolve(); // 继续，不阻塞
-                }, 10000);
+                    cleanup();
+                    resolve();
+                }, 8000);
             });
 
             // 隐藏占位，显示控件
@@ -191,11 +218,11 @@
             captureBtn.style.display = 'inline-flex';
 
             // 视频尺寸同步到 canvas
-            video.addEventListener('loadedmetadata', () => {
-                canvas.width = video.videoWidth || 640;
-                canvas.height = video.videoHeight || 480;
-                wrapper.style.aspectRatio = `${video.videoWidth || 640} / ${video.videoHeight || 480}`;
-            });
+            const vw = video.videoWidth || 640;
+            const vh = video.videoHeight || 480;
+            canvas.width = vw;
+            canvas.height = vh;
+            wrapper.style.aspectRatio = `${vw} / ${vh}`;
 
             // 开始跟踪
             startTracking();
@@ -207,15 +234,18 @@
 
         } catch (err) {
             console.error('摄像头开启失败:', err);
+            forceReleaseCamera(); // 失败时也释放
             let msg = '摄像头开启失败：';
             if (err.name === 'NotAllowedError' || err.message.includes('Permission')) {
                 msg += '请允许浏览器访问摄像头权限，然后刷新页面重试';
             } else if (err.name === 'NotFoundError') {
                 msg += '未检测到摄像头设备';
-            } else if (err.name === 'NotReadableError') {
-                msg += '摄像头被其他应用占用，请关闭其他使用摄像头的程序';
+            } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                msg += '摄像头被其他应用占用，请关闭其他使用摄像头的程序后重试';
+            } else if (err.name === 'OverconstrainedError') {
+                msg += '摄像头不支持请求的分辨率，将尝试降级';
             } else {
-                msg += err.message || '未知错误';
+                msg += err.message || '未知错误，请刷新页面重试';
             }
             tips.textContent = msg;
             tips.style.color = '#ef4444';
@@ -223,15 +253,7 @@
     }
 
     function stopCamera() {
-        stopTracking();
-
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            stream = null;
-        }
-        video.srcObject = null;
-
-        // 清除画布
+        forceReleaseCamera();
         renderer.clear();
 
         placeholder.style.display = 'flex';
@@ -260,8 +282,8 @@
                         renderer.render(
                             anchorPoints,
                             headRotation,
-                            video.videoWidth || video.clientWidth,
-                            video.videoHeight || video.clientHeight
+                            video.videoWidth || canvas.width,
+                            video.videoHeight || canvas.height
                         );
                     }
                 }
@@ -273,29 +295,20 @@
         trackLoop();
     }
 
-    function stopTracking() {
-        isTracking = false;
-        if (animationId) {
-            cancelAnimationFrame(animationId);
-            animationId = null;
-        }
-    }
-
     // ===== 拍照 =====
     function capturePhoto() {
-        // 创建临时 canvas 合并视频帧 + 眼镜
+        const vw = video.videoWidth || canvas.width;
+        const vh = video.videoHeight || canvas.height;
         const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = video.videoWidth || video.clientWidth;
-        tempCanvas.height = video.videoHeight || video.clientHeight;
+        tempCanvas.width = vw;
+        tempCanvas.height = vh;
         const ctx = tempCanvas.getContext('2d');
 
         // 先画视频帧
-        ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
-
+        ctx.drawImage(video, 0, 0, vw, vh);
         // 再画眼镜 canvas
-        ctx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+        ctx.drawImage(canvas, 0, 0, vw, vh);
 
-        // 生成图片
         const dataUrl = tempCanvas.toDataURL('image/png');
         captureImage.src = dataUrl;
         captureModal.classList.add('show');
@@ -317,12 +330,10 @@
         downloadBtn.addEventListener('click', downloadPhoto);
         retakeBtn.addEventListener('click', () => captureModal.classList.remove('show'));
 
-        // 点击模态框外部关闭
         captureModal.addEventListener('click', (e) => {
             if (e.target === captureModal) captureModal.classList.remove('show');
         });
 
-        // ESC 关闭模态框
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') captureModal.classList.remove('show');
         });
