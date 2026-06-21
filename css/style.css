@@ -1,0 +1,212 @@
+/* ===== Reset & base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --text-light: #64748b;
+    --border: #e2e8f0;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+    --radius: 12px;
+    --radius-sm: 8px;
+}
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+.container { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+
+/* ===== Header ===== */
+.header {
+    background: var(--card-bg);
+    box-shadow: var(--shadow);
+    position: sticky; top: 0; z-index: 100;
+}
+.header .container {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 60px;
+}
+.logo { font-size: 20px; font-weight: 700; color: var(--primary); }
+.nav { display: flex; gap: 8px; }
+.nav a {
+    text-decoration: none; color: var(--text-light);
+    padding: 8px 16px; border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 500;
+    transition: all 0.2s;
+}
+.nav a:hover { background: #f1f5f9; }
+.nav a.active { background: var(--primary); color: white; }
+
+/* ===== Filters ===== */
+.filters { padding: 20px 0; }
+.filter-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.filter-btn {
+    padding: 8px 20px; border: 2px solid var(--border);
+    border-radius: 20px; background: var(--card-bg);
+    color: var(--text-light); font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s;
+}
+.filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+.filter-btn.active { border-color: var(--primary); background: var(--primary); color: white; }
+
+/* ===== Glasses Grid ===== */
+.glasses-grid-section { padding-bottom: 60px; }
+.glasses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 24px;
+}
+.glasses-card {
+    background: var(--card-bg); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+.glasses-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.glasses-card-img {
+    width: 100%; height: 200px;
+    display: flex; align-items: center; justify-content: center;
+    background: #f1f5f9; padding: 20px;
+}
+.glasses-card-img svg { width: 100%; height: 100%; max-width: 180px; }
+.glasses-card-body { padding: 16px; }
+.glasses-card-body h3 { font-size: 16px; margin-bottom: 4px; }
+.glasses-card-body .category {
+    font-size: 12px; color: var(--primary);
+    background: #eef2ff; padding: 2px 10px;
+    border-radius: 10px; display: inline-block; margin-bottom: 8px;
+}
+.glasses-card-body .price { font-size: 18px; font-weight: 700; color: var(--primary); }
+.glasses-card-body .actions { margin-top: 12px; display: flex; gap: 8px; }
+
+/* ===== Buttons ===== */
+.btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 24px; border: none; border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; text-decoration: none;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-secondary { background: #f1f5f9; color: var(--text); }
+.btn-secondary:hover { background: #e2e8f0; }
+.btn-danger { background: #ef4444; color: white; }
+.btn-danger:hover { background: #dc2626; }
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+
+/* ===== Try-On Page ===== */
+.tryon-section { padding: 24px 0; }
+.tryon-container {
+    display: flex; gap: 24px;
+    max-width: 1400px; margin: 0 auto; padding: 0 16px;
+}
+.tryon-camera { flex: 1; min-width: 0; }
+.camera-wrapper {
+    position: relative; width: 100%;
+    background: #000; border-radius: var(--radius);
+    overflow: hidden; aspect-ratio: 4/3;
+}
+.camera-wrapper video,
+.camera-wrapper canvas {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%; object-fit: cover;
+}
+.camera-wrapper canvas { z-index: 2; }
+.camera-placeholder {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: white; z-index: 1; text-align: center; padding: 20px;
+}
+.placeholder-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.7; }
+.camera-placeholder h3 { font-size: 18px; margin-bottom: 8px; }
+.camera-placeholder p { font-size: 14px; opacity: 0.7; }
+.camera-controls { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.camera-tips { margin-top: 8px; font-size: 13px; color: var(--text-light); }
+
+/* Right panel */
+.tryon-panel {
+    width: 320px; flex-shrink: 0;
+    background: var(--card-bg); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 20px;
+    max-height: calc(100vh - 100px); overflow-y: auto;
+}
+.tryon-panel h2 { font-size: 18px; margin-bottom: 16px; }
+.tryon-glasses-list { display: flex; flex-direction: column; gap: 12px; }
+.tryon-glasses-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px; border-radius: var(--radius-sm);
+    border: 2px solid var(--border); cursor: pointer;
+    transition: all 0.2s;
+}
+.tryon-glasses-item:hover { border-color: var(--primary); }
+.tryon-glasses-item.active { border-color: var(--primary); background: #eef2ff; }
+.tryon-glasses-item .thumb {
+    width: 60px; height: 40px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+}
+.tryon-glasses-item .thumb svg { width: 100%; height: 100%; }
+.tryon-glasses-item .info { flex: 1; min-width: 0; }
+.tryon-glasses-item .info h4 { font-size: 14px; margin-bottom: 2px; }
+.tryon-glasses-item .info span { font-size: 12px; color: var(--text-light); }
+.tryon-glasses-item .price-tag { font-weight: 700; color: var(--primary); font-size: 14px; }
+
+.selected-info {
+    margin-top: 16px; padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 12px; align-items: center;
+}
+.selected-glasses-preview {
+    width: 80px; height: 60px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #f1f5f9; border-radius: var(--radius-sm);
+}
+.selected-glasses-preview img,
+.selected-glasses-preview svg { width: 100%; height: 100%; }
+.selected-glasses-detail h3 { font-size: 16px; }
+.selected-glasses-detail p { color: var(--primary); font-weight: 700; font-size: 18px; }
+
+/* ===== Modal ===== */
+.modal {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.6);
+    align-items: center; justify-content: center;
+}
+.modal.show { display: flex; }
+.modal-content {
+    background: var(--card-bg); border-radius: var(--radius);
+    padding: 24px; max-width: 500px; width: 90%;
+    text-align: center; position: relative;
+}
+.modal-close {
+    position: absolute; top: 8px; right: 16px;
+    font-size: 28px; cursor: pointer; color: var(--text-light);
+}
+.capture-result { margin: 16px 0; }
+.capture-result img { max-width: 100%; border-radius: var(--radius-sm); }
+.capture-actions { display: flex; gap: 8px; justify-content: center; }
+
+/* ===== Footer ===== */
+.footer {
+    text-align: center; padding: 24px 0;
+    color: var(--text-light); font-size: 13px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+    .tryon-container { flex-direction: column; }
+    .tryon-panel { width: 100%; max-height: none; }
+}
+@media (max-width: 600px) {
+    .glasses-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .glasses-card-img { height: 140px; }
+    .header .container { padding: 0 12px; }
+    .filter-btns { gap: 6px; }
+    .filter-btn { padding: 6px 14px; font-size: 12px; }
+}

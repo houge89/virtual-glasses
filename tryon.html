@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AR 试戴 | 虚拟眼镜</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">👓 虚拟眼镜</div>
+            <nav class="nav">
+                <a href="index.html">全部款式</a>
+                <a href="tryon.html" class="active">AR 试戴</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 试戴页面主体 -->
+    <section class="tryon-section">
+        <div class="tryon-container">
+            <!-- 左侧：摄像头画面 -->
+            <div class="tryon-camera">
+                <div class="camera-wrapper" id="cameraWrapper">
+                    <video id="webcam" autoplay playsinline></video>
+                    <canvas id="overlayCanvas"></canvas>
+                    <div class="camera-placeholder" id="cameraPlaceholder">
+                        <div class="placeholder-icon">📷</div>
+                        <h3>点击下方按钮开启摄像头</h3>
+                        <p>请确保允许浏览器使用摄像头权限</p>
+                    </div>
+                </div>
+                <div class="camera-controls">
+                    <button class="btn btn-primary" id="startCameraBtn">📸 开启摄像头</button>
+                    <button class="btn btn-secondary" id="captureBtn" style="display:none">📷 拍照</button>
+                    <button class="btn btn-danger" id="stopCameraBtn" style="display:none">⏹ 关闭</button>
+                </div>
+                <div class="camera-tips" id="cameraTips">
+                    💡 提示：请在光线充足的环境下使用，面部正对摄像头
+                </div>
+            </div>
+
+            <!-- 右侧：眼镜选择面板 -->
+            <div class="tryon-panel">
+                <h2>选择眼镜</h2>
+                <div class="tryon-glasses-list" id="tryonGlassesList">
+                    <!-- 由 JS 动态渲染 -->
+                </div>
+                <div class="selected-info" id="selectedInfo">
+                    <div class="selected-glasses-preview">
+                        <img id="selectedGlassesImg" src="" alt="">
+                    </div>
+                    <div class="selected-glasses-detail">
+                        <h3 id="selectedGlassesName">请选择一副眼镜</h3>
+                        <p id="selectedGlassesPrice"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 截图弹窗 -->
+    <div class="modal" id="captureModal">
+        <div class="modal-content">
+            <span class="modal-close" id="modalClose">&times;</span>
+            <h2>📸 试戴效果</h2>
+            <div class="capture-result" id="captureResult">
+                <img id="captureImage" src="" alt="试戴效果">
+            </div>
+            <div class="capture-actions">
+                <button class="btn btn-primary" id="downloadBtn">⬇ 下载照片</button>
+                <button class="btn btn-secondary" id="retakeBtn">🔄 重新拍照</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>👓 虚拟眼镜试戴 — 选好款式，开启摄像头试试效果</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm/vision_bundle.js"></script>
+    <script src="js/glasses-data.js"></script>
+    <script src="js/face-tracking.js"></script>
+    <script src="js/glasses-renderer.js"></script>
+    <script src="js/tryon.js"></script>
+</body>
+</html>
