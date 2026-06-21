@@ -4,9 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AR 试戴 | 虚拟眼镜</title>
-    <link rel="stylesheet" href="css/style.css?v=202606211400">
+    <link rel="stylesheet" href="css/style.css?v=202606211410">
+    <style>
+        /* 试戴启动覆盖层 */
+        #startOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.75); z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column; color: white; text-align: center;
+            backdrop-filter: blur(6px);
+        }
+        #startOverlay.hidden { display: none; }
+        #startOverlay .start-box {
+            background: white; color: #1e293b; border-radius: 20px;
+            padding: 40px 32px; max-width: 360px; width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        #startOverlay .glasses-preview {
+            font-size: 80px; margin-bottom: 12px;
+        }
+        #startOverlay h2 { font-size: 22px; margin-bottom: 8px; }
+        #startOverlay p { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+        #startOverlay .btn-start {
+            display: block; width: 100%; padding: 16px;
+            background: #4f46e5; color: white; border: none;
+            border-radius: 12px; font-size: 18px; font-weight: 600;
+            cursor: pointer; transition: background 0.2s;
+        }
+        #startOverlay .btn-start:active { background: #4338ca; }
+        #startOverlay .tip { font-size: 12px; color: #94a3b8; margin-top: 16px; }
+    </style>
 </head>
 <body>
+    <!-- 试戴启动覆盖层（页面加载后显示）-->
+    <div id="startOverlay">
+        <div class="start-box">
+            <div class="glasses-preview" id="overlayPreview">👓</div>
+            <h2 id="overlayTitle">准备试戴</h2>
+            <p id="overlayDesc">点击下方按钮开启摄像头，开始虚拟试戴</p>
+            <button class="btn-start" id="btnStartTryon">📷 开始试戴</button>
+            <div class="tip">首次使用需允许浏览器访问摄像头</div>
+        </div>
+    </div>
+
     <!-- 顶部导航 -->
     <header class="header">
         <div class="container">
@@ -82,11 +122,10 @@
         </div>
     </footer>
 
-    <!-- 所有 JS 带版本号，强制浏览器拉最新版（每次更新代码请修改 v= 后面的日期时间）-->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm/vision_bundle.js"></script>
-    <script src="js/glasses-data.js?v=202606211400"></script>
-    <script src="js/face-tracking.js?v=202606211400"></script>
-    <script src="js/glasses-renderer.js?v=202606211400"></script>
-    <script src="js/tryon.js?v=202606211400"></script>
+    <script src="js/glasses-data.js?v=202606211410"></script>
+    <script src="js/face-tracking.js?v=202606211410"></script>
+    <script src="js/glasses-renderer.js?v=202606211410"></script>
+    <script src="js/tryon.js?v=202606211410"></script>
 </body>
 </html>
