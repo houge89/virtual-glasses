@@ -1,15 +1,13 @@
-// 浜鸿劯璺熻釜 - MediaPipe Face Landmarks
-// 鍏抽敭鐐圭储寮曡鏄庯紙MediaPipe Face Mesh锛屼互浜虹墿鑷韩瑙嗚涓哄噯锛夛細
-//   宸︾溂鍐呯溂瑙? 33      宸︾溂澶栫溂瑙? 133
-//   鍙崇溂鍐呯溂瑙? 263     鍙崇溂澶栫溂瑙? 362
-//   榧诲皷: 1             榧绘牴(涓ょ溂涔嬮棿): 168
-//   宸﹀お闃崇┐闄勮繎: 162    鍙冲お闃崇┐闄勮繎: 389
+// 人脸跟踪 - MediaPipe Face Landmarks
+// 关键点索引说明（MediaPipe Face Mesh，以人物自身视角为准）：
+//   左眼内眼角: 33      左眼外眼角: 133
+//   右眼内眼角: 263     右眼外眼角: 362
+//   鼻尖: 1             鼻根(两眼之间): 168
+//   左太阳穴附近: 162    右太阳穴附近: 389
 class FaceTracker {
     constructor() {
         this.faceLandmarker = null;
-        this.running = false;
         this.lastResults = null;
-        this.runningMode = 'VIDEO';
         this.initialized = false;
     }
 
@@ -23,31 +21,31 @@ class FaceTracker {
 
             this.faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
                 baseOptions: {
+                    // 正确模型地址（float16 轻量版，加载更快）
                     modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
                     delegate: 'GPU'
                 },
                 outputFaceBlendshapes: false,
-                runningMode: this.runningMode,
+                runningMode: 'VIDEO',
                 numFaces: 1
             });
 
             this.initialized = true;
-            console.log('FaceTracker: 鍒濆鍖栨垚鍔?);
+            console.log('FaceTracker: 初始化成功');
             return true;
         } catch (err) {
-            console.error('FaceTracker: 鍒濆鍖栧け璐?, err);
+            console.error('FaceTracker: 初始化失败', err);
             return false;
         }
     }
 
-    // 妫€娴嬪崟甯?    detect(videoElement) {
+    // 检测单帧
+    detect(videoElement) {
         if (!this.faceLandmarker || !videoElement || videoElement.readyState < 2) {
             return null;
         }
 
         try {
-            // 姣忔妫€娴嬪墠鍚屾 runningMode锛岄槻姝?VIDEO/IMAGE 妯″紡鍐茬獊
-            this.faceLandmarker.setOptions({ runningMode: 'VIDEO' });
             const startTime = performance.now();
             const result = this.faceLandmarker.detectForVideo(videoElement, startTime);
 
@@ -57,77 +55,61 @@ class FaceTracker {
             }
             return null;
         } catch (err) {
-            console.warn('FaceTracker: 妫€娴嬪抚澶辫触', err);
+            console.warn('FaceTracker: 检测帧失败', err);
             return null;
         }
     }
 
-    // 鑾峰彇闈㈤儴鍏抽敭鐐癸紙褰掍竴鍖?0-1锛?    getFaceLandmarks() {
+    // 获取面部关键点（归一化 0-1）
+    getFaceLandmarks() {
         if (!this.lastResults || !this.lastResults.faceLandmarks || !this.lastResults.faceLandmarks[0]) {
             return null;
         }
         return this.lastResults.faceLandmarks[0];
     }
 
-    // 鑾峰彇鐪奸暅瀹氫綅鍏抽敭鐐癸紙淇鐗堬級
-    // 浠ヨ棰戠敾闈㈠潗鏍囷紙x鍚戝彸锛寉鍚戜笅锛変负鍑?    getGlassesAnchorPoints() {
+    // 获取眼镜定位关键点
+    getGlassesAnchorPoints() {
         const landmarks = this.getFaceLandmarks();
         if (!landmarks) return null;
 
-        // 鈹€鈹€ 鐪肩潧鍏抽敭鐐癸紙MediaPipe 鏍囧噯绱㈠紩锛夆攢鈹€鈹€鈹€
-        // 宸︾溂锛堢敾闈㈠彸渚э級澶栫溂瑙? 133    鍐呯溂瑙?杩戦蓟): 33
-        // 鍙崇溂锛堢敾闈㈠乏渚э級澶栫溂瑙? 362    鍐呯溂瑙?杩戦蓟): 263
-        const leftEyeOuter  = landmarks[133];   // 宸︾溂澶栫溂瑙掞紙鐢婚潰鍙充晶锛?        const rightEyeOuter = landmarks[362];   // 鍙崇溂澶栫溂瑙掞紙鐢婚潰宸︿晶锛?        const leftEyeInner  = landmarks[33];    // 宸︾溂鍐呯溂瑙掞紙杩戦蓟姊侊級
-        const rightEyeInner = landmarks[263];   // 鍙崇溂鍐呯溂瑙掞紙杩戦蓟姊侊級
-
-        // 榧绘锛氫袱鐪间箣闂寸殑榧绘牴浣嶇疆
-        const noseBridge = landmarks[168];      // 榧绘牴锛堜袱鐪间腑鐐瑰亸涓婏級
-
-        // 澶槼绌撮檮杩戯細鐢ㄤ簬浼扮畻闀滆吙浣嶇疆
-        const leftTemple  = landmarks[162];    // 宸﹀お闃崇┐闄勮繎
-        const rightTemple = landmarks[389];    // 鍙冲お闃崇┐闄勮繎
-
         return {
-            // 澶栫溂瑙掞紙鐢ㄤ簬璁＄畻鐬宠窛/鐪奸暅瀹藉害锛?            leftEyeOuter:  { x: leftEyeOuter.x,  y: leftEyeOuter.y  },
-            rightEyeOuter: { x: rightEyeOuter.x, y: rightEyeOuter.y },
-            // 鍐呯溂瑙掞紙鐢ㄤ簬璁＄畻榧绘浣嶇疆锛?            leftEyeInner:  { x: leftEyeInner.x,  y: leftEyeInner.y  },
-            rightEyeInner: { x: rightEyeInner.x, y: rightEyeInner.y },
-            // 榧绘
-            noseBridge:    { x: noseBridge.x,    y: noseBridge.y    },
-            // 澶槼绌?            leftTemple:    { x: leftTemple.x,    y: leftTemple.y    },
-            rightTemple:   { x: rightTemple.x,   y: rightTemple.y   }
+            // 外眼角（用于计算瞳距/眼镜宽度）
+            leftEyeOuter:  { x: landmarks[133].x, y: landmarks[133].y },
+            rightEyeOuter: { x: landmarks[362].x, y: landmarks[362].y },
+            // 内眼角
+            leftEyeInner:  { x: landmarks[33].x,  y: landmarks[33].y  },
+            rightEyeInner: { x: landmarks[263].x, y: landmarks[263].y },
+            // 鼻梁中心
+            noseBridge:    { x: landmarks[168].x, y: landmarks[168].y },
+            // 太阳穴附近
+            leftTemple:    { x: landmarks[162].x, y: landmarks[162].y },
+            rightTemple:   { x: landmarks[389].x, y: landmarks[389].y }
         };
     }
 
-    // 鑾峰彇澶撮儴鏃嬭浆瑙掑害
+    // 获取头部旋转角度
     getHeadRotation() {
         const landmarks = this.getFaceLandmarks();
         if (!landmarks) return { roll: 0, yaw: 0, pitch: 0 };
 
-        // Roll锛堝乏鍙冲€炬枩锛夛細閫氳繃涓ょ溂杩炵嚎瑙掑害璁＄畻
-        const leftOuter  = landmarks[133];
-        const rightOuter = landmarks[362];
-        const dx = rightOuter.x - leftOuter.x;
-        const dy = rightOuter.y - leftOuter.y;
+        // Roll：两眼连线角度
+        const dx = landmarks[362].x - landmarks[133].x;
+        const dy = landmarks[362].y - landmarks[133].y;
         const roll = Math.atan2(dy, dx) * (180 / Math.PI);
 
-        // Yaw锛堝乏鍙宠浆澶达級锛氶蓟灏栫浉瀵归潰閮ㄤ腑绾跨殑鍋忕Щ
-        const noseTip  = landmarks[1];   // 榧诲皷
-        const leftInner = landmarks[33];
-        const rightInner = landmarks[263];
-        const faceCenterX = (leftInner.x + rightInner.x) / 2;
-        const noseDx = noseTip.x - faceCenterX;
-        const yaw = noseDx * 80; // 缂╂斁绯绘暟
+        // Yaw：鼻尖相对面部中线的偏移
+        const noseTip   = landmarks[1];
+        const faceCenterX = (landmarks[33].x + landmarks[263].x) / 2;
+        const yaw = (noseTip.x - faceCenterX) * 80;
 
-        // Pitch锛堜笂涓嬬偣澶达級锛氶蓟灏栫浉瀵归蓟鏍圭殑 y 鍋忕Щ
-        const noseRoot = landmarks[168];
-        const pitch = (noseTip.y - noseRoot.y) * 60;
+        // Pitch：鼻尖相对鼻根的 y 偏移
+        const pitch = (noseTip.y - landmarks[168].y) * 60;
 
         return { roll, yaw, pitch };
     }
 
     dispose() {
-        this.running = false;
         this.lastResults = null;
         if (this.faceLandmarker) {
             this.faceLandmarker.close();
